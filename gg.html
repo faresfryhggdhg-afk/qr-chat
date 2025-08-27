@@ -1,554 +1,417 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html><html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>💬 دردشة QR WebRTC - واجهة كاملة</title>
+  <title>💬 دردشة WebRTC عبر QR + إدخال يدوي (PC بلا كاميرا)</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    :root {
-      --primary: #2563eb;
-      --success: #065f46;
-      --error: #7f1d1d;
-      --gray: #6b7280;
+    :root{
+      --primary:#2563eb;--success:#065f46;--error:#7f1d1d;--gray:#6b7280;--bg:#f3f6fb
     }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, sans-serif;
-      margin: 0;
-      background: #f3f6fb;
-      color: #333;
-    }
-    .wrap {
-      max-width: 960px;
-      margin: 12px auto;
-      background: white;
-      border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-    header {
-      background: var(--primary);
-      color: white;
-      padding: 14px;
-      text-align: center;
-      font-size: 1.3em;
-      font-weight: 600;
-    }
-    .content {
-      padding: 16px;
-    }
-    .row {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-    }
-    .col {
-      flex: 1;
-      min-width: 280px;
-    }
-    .btn {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin: 6px 0;
-      width: 100%;
-      font-size: 1em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.3s;
-    }
-    .btn:hover {
-      background: #1d4ed8;
-    }
-    .btn:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-    video {
-      width: 100%;
-      max-height: 300px;
-      background: black;
-      border-radius: 10px;
-      display: none;
-      margin-top: 8px;
-    }
-    .qr-box {
-      text-align: center;
-      margin: 14px 0;
-    }
-    .result {
-      margin: 8px 0;
-      padding: 8px;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 0.9em;
-    }
-    .success { background: #ecfdf5; color: var(--success); }
-    .error { background: #fff1f2; color: var(--error); }
-    .info { background: #eff6ff; color: var(--primary); }
-    .chat {
-      display: none;
-      flex-direction: column;
-      height: 420px;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .msgs {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: #f8fafc;
-    }
-    .bubble {
-      padding: 10px 14px;
-      border-radius: 16px;
-      max-width: 75%;
-      line-height: 1.4;
-      word-wrap: break-word;
-    }
-    .me {
-      align-self: flex-end;
-      background: var(--primary);
-      color: white;
-    }
-    .other {
-      align-self: flex-start;
-      background: #f1f5f9;
-      color: #1e293b;
-    }
-    .msg-img {
-      max-width: 180px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    .composer {
-      display: flex;
-      gap: 6px;
-      padding: 8px;
-      background: white;
-      border-top: 1px solid #eee;
-    }
-    .composer textarea {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      outline: none;
-      resize: none;
-      min-height: 40px;
-      max-height: 100px;
-    }
-    .tools {
-      display: flex;
-      gap: 6px;
-    }
-    .tools button {
-      width: 40px;
-      padding: 0;
-      font-size: 1.1em;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .tools button:hover {
-      background: #f1f5f9;
-    }
-    .note {
-      font-size: 0.9em;
-      color: var(--gray);
-      margin: 10px 0;
-      padding: 8px;
-      background: #f1f5f9;
-      border-radius: 6px;
-    }
-    .status-bar {
-      font-size: 0.9em;
-      padding: 6px 10px;
-      background: #eff6ff;
-      color: var(--primary);
-      text-align: center;
-    }
-    .hidden {
-      display: none !important;
-    }
-    .qr-loading {
-      display: none;
-      text-align: center;
-      color: var(--primary);
-      font-size: 0.9em;
-      margin: 8px 0;
-    }
-    .loader {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #f3f3f3;
-      border-top: 2px solid var(--primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-left: 8px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    @media (max-width: 480px) {
-      .row { flex-direction: column; }
-      .wrap { margin: 8px; }
-    }
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Tahoma,Geneva,sans-serif;margin:0;background:var(--bg);color:#1f2937}
+    .wrap{max-width:1000px;margin:14px auto;background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08);overflow:hidden}
+    header{background:var(--primary);color:#fff;padding:14px;text-align:center;font-weight:700}
+    .content{padding:16px}
+    .row{display:flex;gap:18px;flex-wrap:wrap}
+    .col{flex:1;min-width:300px}
+    h3{margin:0 0 8px}
+    .btn{background:var(--primary);color:#fff;border:none;padding:10px 12px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-weight:600}
+    .btn:hover{opacity:.95}
+    .btn.secondary{background:#0f172a}
+    .btn.light{background:#eef2ff;color:#1e40af}
+    .btn.ghost{background:#f8fafc;color:#0f172a;border:1px solid #e5e7eb}
+    .btn:disabled{background:#94a3b8;cursor:not-allowed}
+    .stack{display:flex;gap:8px;flex-wrap:wrap}
+    video{width:100%;max-height:280px;background:#000;border-radius:10px;display:none;margin-top:8px}
+    .qr-box{display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;border:1px dashed #cbd5e1;border-radius:12px;padding:10px;min-height:260px;background:#f8fafc}
+    .result{margin:8px 0;padding:10px;border-radius:8px;font-size:.95em;text-align:center}
+    .success{background:#ecfdf5;color:var(--success)}
+    .error{background:#fff1f2;color:var(--error)}
+    .info{background:#eff6ff;color:var(--primary)}
+    .note{font-size:.9em;color:var(--gray);background:#f1f5f9;padding:8px;border-radius:8px;margin:8px 0}
+    .field{display:flex;flex-direction:column;gap:6px}
+    textarea{width:100%;min-height:80px;resize:vertical;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    .copy-line{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+    .chat{display:none;flex-direction:column;height:450px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-top:16px}
+    .status-bar{font-size:.95em;padding:8px 10px;background:#eff6ff;color:var(--primary);text-align:center}
+    .msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;background:#f8fafc}
+    .bubble{padding:10px 14px;border-radius:16px;max-width:78%;line-height:1.45;word-wrap:break-word}
+    .me{align-self:flex-end;background:var(--primary);color:#fff}
+    .other{align-self:flex-start;background:#f1f5f9;color:#0f172a}
+    .msg-img{max-width:200px;border-radius:10px;cursor:pointer}
+    .composer{display:flex;gap:8px;padding:8px;background:#fff;border-top:1px solid #e5e7eb}
+    .composer textarea{flex:1;min-height:42px;max-height:120px}
+    .tools{display:flex;gap:6px}
+    .tools button{width:42px;height:42px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
+    .loader{display:inline-block;width:16px;height:16px;border:2px solid #e5e7eb;border-top:2px solid var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:520px){.wrap{margin:8px}.row{flex-direction:column}}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <header>🔐 دردشة آمنة عبر QR</header>
+    <header>🔐 دردشة WebRTC عبر QR + إدخال يدوي (تلائم PC بلا كاميرا)</header>
     <div class="content">
-      <div class="row">
-        <!-- الطرف الأول -->
-        <div class="col">
-          <h3>الطرف الأول: إنشاء محادثة</h3>
-          <div class="qr-loading" id="qrLoading"><span class="loader"></span> جاري إنشاء QR...</div>
-          <div class="qr-box" id="qr"></div>
-          <button id="offerBtn" class="btn"><i class="fas fa-qrcode"></i> 🔄 توليد QR</button>
-          <button id="resetBtn" class="btn hidden"><i class="fas fa-redo"></i> محادثة جديدة</button>
-          <div class="note">
-            📌 1. اضغط "توليد QR"<br>
-            📌 2. اطلب من الطرف الثاني مسح الرمز<br>
-            📌 3. ثم امسح الرمز الذي يظهر لديه (الرد)
-          </div>
+      <div id="globalStatus" class="result info" style="display:none"></div><div class="row">
+    <!-- الطرف الأول -->
+    <div class="col">
+      <h3>الطرف الأول: إنشاء محادثة</h3>
+      <div class="qr-box" id="qrOfferBox">
+        <div class="note" style="text-align:center">اضغط <b>توليد Offer</b> ثم اعرض QR للهاتف لمسحه.</div>
+        <div id="qrOffer"></div>
+        <div id="offerSpinner" style="display:none"><span class="loader"></span></div>
+      </div>
+      <div class="stack" style="margin-top:8px">
+        <button id="makeOfferBtn" class="btn"><i class="fas fa-qrcode"></i> توليد Offer (QR)</button>
+        <button id="resetBtn" class="btn ghost"><i class="fas fa-arrows-rotate"></i> محادثة جديدة</button>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label for="offerText">Offer (نص Base64) — للاستعمال اليدوي:</label>
+        <textarea id="offerText" placeholder="سيظهر هنا الـ Offer كنص يمكن نسخه"></textarea>
+        <div class="copy-line">
+          <button id="copyOfferBtn" class="btn light"><i class="fas fa-copy"></i> نسخ Offer</button>
         </div>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label for="answerText">Answer من الطرف الثاني (ألصق يدويًا إن لم تتوفر كاميرا على PC):</label>
+        <textarea id="answerText" placeholder="ألصق هنا الـ Answer Base64 من الهاتف"></textarea>
+        <div class="stack">
+          <button id="applyAnswerBtn" class="btn secondary"><i class="fas fa-plug"></i> تطبيق Answer يدويًا</button>
+          <button id="scanAnswerBtn" class="btn"><i class="fas fa-camera"></i> مسح Answer عبر كاميرا</button>
+        </div>
+      </div>
+    </div>
 
-        <!-- الطرف الثاني -->
-        <div class="col">
-          <h3>الطرف الثاني: الانضمام عبر QR</h3>
-          <video id="video" autoplay playsinline></video>
-          <div id="status" class="result hidden"></div>
-          <button id="scanBtn" class="btn"><i class="fas fa-camera"></i> 📷 بدء المسح</button>
-          <div class="note">
-            📌 1. امسح رمز الطرف الأول<br>
-            📌 2. سيظهر لك رمز جديد (الرد)<br>
-            📌 3. اعرضه للطرف الأول ليُمسحه
-          </div>
+    <!-- الطرف الثاني -->
+    <div class="col">
+      <h3>الطرف الثاني: الانضمام</h3>
+      <video id="video" autoplay playsinline></video>
+      <div id="scanStatus" class="result" style="display:none"></div>
+      <div class="stack">
+        <button id="scanOfferBtn" class="btn"><i class="fas fa-camera"></i> بدء مسح Offer</button>
+        <button id="stopScanBtn" class="btn ghost"><i class="fas fa-stop"></i> إيقاف المسح</button>
+      </div>
+
+      <div class="note">إن لم تتوفر كاميرا على هذا الجهاز، يمكنك لصق الـ Offer يدويًا:</div>
+      <div class="field">
+        <label for="joinOfferText">Offer من الطرف الأول (Base64 أو webrtc://...):</label>
+        <textarea id="joinOfferText" placeholder="ألصق هنا ثم اضغط إنشاء Answer"></textarea>
+        <div class="stack">
+          <button id="makeAnswerBtn" class="btn secondary"><i class="fas fa-reply"></i> إنشاء Answer</button>
         </div>
       </div>
 
-      <!-- واجهة المحادثة -->
-      <div class="chat" id="chatBox">
-        <div class="status-bar" id="connStatus">جاري الاتصال...</div>
-        <div class="msgs" id="msgs"></div>
-        <div class="composer">
-          <textarea id="msgInput" placeholder="اكتب رسالة..." rows="1"></textarea>
-          <div class="tools">
-            <button id="imgBtn" title="إرسال صورة"><i class="fas fa-image"></i></button>
-            <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
-          </div>
+      <div class="field" style="margin-top:10px">
+        <label for="answerOutText">Answer الناتج (Base64 + QR):</label>
+        <div class="qr-box" id="qrAnswerBox">
+          <div id="qrAnswer"></div>
+        </div>
+        <textarea id="answerOutText" placeholder="سيظهر هنا Answer كنص"></textarea>
+        <div class="copy-line">
+          <button id="copyAnswerBtn" class="btn light"><i class="fas fa-copy"></i> نسخ Answer</button>
         </div>
       </div>
-
-      <!-- إدخال صورة (مخفي) -->
-      <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
     </div>
   </div>
 
-  <!-- مكتبات QR -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <script src="https://unpkg.com/qr-scanner/qr-scanner.umd.min.js"></script>
+  <!-- واجهة المحادثة -->
+  <div class="chat" id="chatBox">
+    <div class="status-bar" id="connStatus">جاري الإعداد...</div>
+    <div class="msgs" id="msgs"></div>
+    <div class="composer">
+      <textarea id="msgInput" placeholder="اكتب رسالة..." rows="1"></textarea>
+      <div class="tools">
+        <button id="imgBtn" title="إرسال صورة"><i class="fas fa-image"></i></button>
+        <button id="sendBtn" title="إرسال"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
 
-  <script>
-    // عناصر واجهة المستخدم
-    const qrDiv = document.getElementById("qr");
-    const video = document.getElementById("video");
-    const statusEl = document.getElementById("status");
-    const chatBox = document.getElementById("chatBox");
-    const msgsEl = document.getElementById("msgs");
-    const msgInput = document.getElementById("msgInput");
-    const connStatus = document.getElementById("connStatus");
-    const offerBtn = document.getElementById("offerBtn");
-    const scanBtn = document.getElementById("scanBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const imgBtn = document.getElementById("imgBtn");
-    const sendBtn = document.getElementById("sendBtn");
-    const fileInput = document.getElementById("fileInput");
-    const qrLoading = document.getElementById("qrLoading");
+  <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none" />
+</div>
 
-    let peerConnection = null;
-    let dataChannel = null;
-    let qrScanner = null;
+  </div> <!-- مكتبات --> <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script> <script src="https://unpkg.com/qr-scanner/qr-scanner.umd.min.js"></script> <script>
+    // عناصر
+    const qrOffer = document.getElementById('qrOffer');
+    const qrAnswer = document.getElementById('qrAnswer');
+    const offerSpinner = document.getElementById('offerSpinner');
+    const makeOfferBtn = document.getElementById('makeOfferBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const offerText = document.getElementById('offerText');
+    const copyOfferBtn = document.getElementById('copyOfferBtn');
+    const answerText = document.getElementById('answerText');
+    const applyAnswerBtn = document.getElementById('applyAnswerBtn');
+    const scanAnswerBtn = document.getElementById('scanAnswerBtn');
 
-    // --- تحقق من بيئة آمنة ---
-    function checkSecureContext() {
-      if (!window.isSecureContext && location.protocol !== 'http:') {
-        showStatus("⚠️ هذا التطبيق يحتاج إلى HTTPS للوصول للكاميرا.", "error");
-        scanBtn.disabled = true;
-      }
+    const video = document.getElementById('video');
+    const scanStatus = document.getElementById('scanStatus');
+    const scanOfferBtn = document.getElementById('scanOfferBtn');
+    const stopScanBtn = document.getElementById('stopScanBtn');
+    const joinOfferText = document.getElementById('joinOfferText');
+    const makeAnswerBtn = document.getElementById('makeAnswerBtn');
+    const answerOutText = document.getElementById('answerOutText');
+    const copyAnswerBtn = document.getElementById('copyAnswerBtn');
+
+    const chatBox = document.getElementById('chatBox');
+    const msgsEl = document.getElementById('msgs');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const imgBtn = document.getElementById('imgBtn');
+    const fileInput = document.getElementById('fileInput');
+    const connStatus = document.getElementById('connStatus');
+    const globalStatus = document.getElementById('globalStatus');
+
+    let pc = null; // RTCPeerConnection
+    let dc = null; // RTCDataChannel
+    let scanner = null; // QrScanner
+
+    // Helpers
+    const enc = (obj) => btoa(JSON.stringify(obj));
+    const dec = (str) => JSON.parse(atob(str));
+
+    function showGlobal(msg, type='info'){
+      globalStatus.textContent = msg; globalStatus.className = `result ${type}`; globalStatus.style.display='block';
     }
+    function hideGlobal(){ globalStatus.style.display='none'; }
 
-    // --- عرض الحالة ---
-    function showStatus(msg, type = "info") {
-      statusEl.textContent = msg;
-      statusEl.className = `result ${type}`;
-      statusEl.classList.remove("hidden");
-    }
+    function setConn(msg){ connStatus.textContent = msg; }
 
-    function updateConnStatus(msg) {
-      connStatus.textContent = msg;
-    }
-
-    // --- إضافة رسالة ---
-    function addMsg(content, me, isImage = false) {
-      const div = document.createElement("div");
-      div.className = `bubble ${me ? "me" : "other"}`;
-      if (isImage) {
-        const img = document.createElement("img");
-        img.src = content;
-        img.classList.add("msg-img");
-        img.onclick = () => window.open(content);
+    function addMsg(content, me, isImage=false){
+      const div = document.createElement('div');
+      div.className = `bubble ${me?'me':'other'}`;
+      if(isImage){
+        const img = document.createElement('img');
+        img.src = content; img.className = 'msg-img';
+        img.onclick = () => window.open(content, '_blank');
         div.appendChild(img);
       } else {
         div.textContent = content;
       }
-      msgsEl.appendChild(div);
-      msgsEl.scrollTop = msgsEl.scrollHeight;
+      msgsEl.appendChild(div); msgsEl.scrollTop = msgsEl.scrollHeight;
     }
 
-    // --- تنظيف الاتصالات ---
-    function cleanup() {
-      if (qrScanner) {
-        qrScanner.stop();
-        qrScanner.destroy();
-        qrScanner = null;
-      }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-      dataChannel = null;
-      video.style.display = "none";
+    function cleanup(){
+      if(scanner){ scanner.stop(); scanner.destroy(); scanner = null; }
+      if(pc){ pc.close(); pc = null; }
+      dc = null;
+      video.style.display = 'none';
     }
 
-    // --- تهيئة قناة البيانات ---
-    function setupDataChannel(channel) {
-      dataChannel = channel;
-      channel.onopen = () => updateConnStatus("✅ متصل! يمكنك إرسال الرسائل.");
-      channel.onmessage = (e) => {
-        try {
+    function setupDC(channel){
+      dc = channel;
+      dc.onopen = ()=> setConn('✅ متصل! يمكنك المراسلة الآن.');
+      dc.onclose = ()=> setConn('❌ تم إغلاق القناة.');
+      dc.onerror = (e)=> console.error('DC error:', e);
+      dc.onmessage = (e)=>{
+        try{
           const data = JSON.parse(e.data);
-          if (data.type === "image") {
-            addMsg(data.src, false, true);
-          } else {
-            addMsg(data.text, false);
-          }
-        } catch {
-          addMsg(e.data, false);
+          if(data.type==='image'){ addMsg(data.src, false, true); }
+          else { addMsg(data.text, false); }
+        }catch{ addMsg(e.data, false); }
+      };
+    }
+
+    // توليد Offer (الطرف الأول)
+    async function makeOffer(){
+      cleanup();
+      makeOfferBtn.disabled = true;
+      offerSpinner.style.display = 'block';
+      qrOffer.innerHTML = '';
+      offerText.value = '';
+
+      pc = new RTCPeerConnection({
+        iceServers:[
+          {urls:'stun:stun.l.google.com:19302'},
+          {urls:'stun:stun1.l.google.com:19302'}
+        ]
+      });
+      setupDC(pc.createDataChannel('chat'));
+
+      pc.onicecandidate = () => {
+        if(pc.iceGatheringState === 'complete'){
+          const encoded = enc(pc.localDescription);
+          offerText.value = encoded;
+          renderQR(qrOffer, 'webrtc://'+encoded);
+          offerSpinner.style.display = 'none';
+          showGlobal('📷 اعرض هذا الـ QR للهاتف لمسحه. إن لم تتوفر كاميرا على الهاتف، انسخ النص من مربع Offer.', 'info');
+          makeOfferBtn.disabled = false;
+          chatBox.style.display = 'flex';
+          setConn('جاري الانتظار...');
         }
       };
-      channel.onclose = () => updateConnStatus("❌ تم إغلاق القناة");
-      channel.onerror = (err) => console.error("DataChannel Error:", err);
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
     }
 
-    // --- إرسال رسالة ---
-    function sendMsg() {
-      const text = msgInput.value.trim();
-      if (!text || !dataChannel || dataChannel.readyState !== "open") return;
-      dataChannel.send(JSON.stringify({ type: "text", text }));
-      addMsg(text, true);
-      msgInput.value = "";
+    // تطبيق Answer للطرف الأول (يدويًا أو عبر ماسح على PC آخر)
+    async function applyAnswerManual(){
+      try{
+        if(!pc) return showGlobal('أنشئ Offer أولاً.', 'error');
+        const raw = answerText.value.trim();
+        if(!raw) return showGlobal('ألصق Answer Base64 أولاً.', 'error');
+        const ans = raw.startsWith('{')? JSON.parse(raw) : dec(raw);
+        await pc.setRemoteDescription(ans);
+        showGlobal('✅ تم تطبيق الـ Answer بنجاح.', 'success');
+        setConn('يتم إكمال الاتصال...');
+      }catch(e){ console.error(e); showGlobal('فشل في تطبيق الـ Answer.', 'error'); }
     }
 
-    sendBtn.onclick = sendMsg;
-    msgInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMsg();
+    // مسح Answer بكاميرا هذا الجهاز (إن وُجدت)
+    function scanAnswer(){ startScan((result)=>{
+      if(result.startsWith('webrtc-answer://')){
+        answerText.value = result.replace('webrtc-answer://','');
+        applyAnswerManual();
+      } else {
+        showGlobal('رمز غير صالح: نحتاج webrtc-answer://', 'error');
       }
-    });
+    }); }
 
-    // --- إرسال صورة ---
-    imgBtn.onclick = () => fileInput.click();
-    fileInput.onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file || !dataChannel || dataChannel.readyState !== "open") return;
+    // الطرف الثاني: الانضمام عبر مسح Offer
+    function scanOffer(){ startScan(async (result)=>{
+      if(result.startsWith('webrtc://')){
+        joinWithOfferStr(result.replace('webrtc://',''));
+      } else { scanStatus.textContent='QR غير صالح'; scanStatus.className='result error'; scanStatus.style.display='block'; }
+    }); }
+
+    // بدء المسح العام
+    function startScan(onResult){
+      try{
+        cleanup();
+        video.style.display = 'block';
+        scanStatus.style.display='block';
+        scanStatus.className='result info';
+        scanStatus.textContent='📷 مسح نشط... وجّه الكاميرا نحو QR';
+        scanner = new QrScanner(video, (res)=>{ scanner.stop(); video.style.display='none'; onResult(res); }, {highlightScanRegion:true, highlightCodeOutline:true});
+        scanner.start({facingMode:'environment'}).catch(err=>{
+          console.error(err);
+          scanStatus.textContent='تعذّر الوصول للكاميرا. استخدم الإدخال اليدوي.';
+          scanStatus.className='result error';
+          video.style.display='none';
+        });
+      }catch(e){ console.error(e); }
+    }
+
+    function stopScan(){ if(scanner){ scanner.stop(); scanner.destroy(); scanner=null; } video.style.display='none'; scanStatus.style.display='none'; }
+
+    // الطرف الثاني: الانضمام عبر لصق Offer نصيًا
+    async function makeAnswerFromPasted(){
+      try{
+        const raw = joinOfferText.value.trim();
+        if(!raw) return showGlobal('ألصق Offer أولاً في خانة الانضمام.', 'error');
+        const offer = raw.startsWith('{')? JSON.parse(raw) : dec(raw.replace(/^webrtc:\/\//,''));
+        await joinWithOffer(offer);
+      }catch(e){ console.error(e); showGlobal('Offer غير صالح.', 'error'); }
+    }
+
+    async function joinWithOfferStr(encoded){
+      try{ const offer = dec(encoded); await joinWithOffer(offer); }
+      catch(e){ console.error(e); showGlobal('فشل في قراءة الـ Offer.', 'error'); }
+    }
+
+    async function joinWithOffer(offer){
+      cleanup();
+      pc = new RTCPeerConnection({
+        iceServers:[
+          {urls:'stun:stun.l.google.com:19302'},
+          {urls:'stun:stun1.l.google.com:19302'}
+        ]
+      });
+      pc.ondatachannel = (e)=> setupDC(e.channel);
+      await pc.setRemoteDescription(offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      // بعد اكتمال ICE اجمع الـ answer النهائي
+      const waitIceComplete = new Promise((resolve)=>{
+        const t = setInterval(()=>{
+          if(pc && pc.iceGatheringState==='complete'){ clearInterval(t); resolve(); }
+        }, 100);
+      });
+      await waitIceComplete;
+
+      const encoded = enc(pc.localDescription);
+      answerOutText.value = encoded;
+      renderQR(qrAnswer, 'webrtc-answer://'+encoded);
+      showGlobal('✅ أنشأنا Answer. اعرض QR للطرف الأول أو انسخ النص.', 'success');
+
+      chatBox.style.display='flex';
+      setConn('جاري الانتظار...');
+    }
+
+    // رسم QR
+    function renderQR(container, data){
+      container.innerHTML='';
+      QRCode.toCanvas(data, {width:230}, (err, canvas)=>{
+        if(err){ console.error(err); showGlobal('فشل في إنشاء QR', 'error'); return; }
+        container.appendChild(canvas);
+      });
+    }
+
+    // إرسال رسالة
+    function sendMsg(){
+      const text = msgInput.value.trim();
+      if(!text || !dc || dc.readyState!=='open') return;
+      dc.send(JSON.stringify({type:'text', text}));
+      addMsg(text, true);
+      msgInput.value='';
+    }
+
+    // إرسال صورة
+    function sendImage(file){
+      if(!file || !dc || dc.readyState!=='open') return;
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = ()=>{
         const base64 = reader.result;
-        dataChannel.send(JSON.stringify({ type: "image", src: base64 }));
+        dc.send(JSON.stringify({type:'image', src: base64}));
         addMsg(base64, true, true);
       };
       reader.readAsDataURL(file);
-    };
-
-    // --- توليد QR بمؤشر تحميل ---
-    function generateQRCode(element, data) {
-      return new Promise((resolve) => {
-        qrLoading.style.display = 'block';
-        element.innerHTML = '';
-        setTimeout(() => {
-          QRCode.toCanvas(data, { width: 220 }, (err, canvas) => {
-            qrLoading.style.display = 'none';
-            if (err) {
-              console.error(err);
-              showStatus("فشل في إنشاء QR", "error");
-              resolve(null);
-              return;
-            }
-            element.appendChild(canvas);
-            resolve(canvas);
-          });
-        }, 10);
-      });
     }
 
-    // --- إنشاء Offer ---
-    async function startOffer() {
-      cleanup();
-      offerBtn.disabled = true;
-
-      peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" }
-        ]
-      });
-
-      dataChannel = peerConnection.createDataChannel("chat");
-      setupDataChannel(dataChannel);
-
-      peerConnection.onicecandidate = () => {
-        if (peerConnection.iceGatheringState === "complete") {
-          const offer = btoa(JSON.stringify(peerConnection.localDescription));
-          generateQRCode(qrDiv, "webrtc://" + offer).then(() => {
-            showStatus("📷 اعرض هذا الرمز للطرف الثاني ليمسحه.", "info");
-            scanBtn.onclick = scanAnswer;
-            scanBtn.textContent = "📷 مسح الرد القادم";
-            scanBtn.classList.remove("hidden");
-            offerBtn.disabled = false;
-          });
-        }
-      };
-
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      chatBox.style.display = "flex";
-      updateConnStatus("جاري الانتظار...");
-    }
-
-    // --- مسح Answer ---
-    async function scanAnswer() {
-      if (!peerConnection) return;
-      startVideoForScan((result) => {
-        if (result.startsWith("webrtc-answer://")) {
-          const answer = JSON.parse(atob(result.replace("webrtc-answer://", "")));
-          peerConnection.setRemoteDescription(answer)
-            .then(() => updateConnStatus("✅ تم الاتصال!"))
-            .catch(err => console.error("فشل في تعيين وصفة الطرف الآخر", err));
-        }
-      });
-    }
-
-    // --- بدء المسح ---
-    function startVideoForScan(onResult) {
-      cleanup();
-      video.style.display = "block";
-
-      qrScanner = new QrScanner(video, (result) => {
-        qrScanner.stop();
-        video.style.display = "none";
-        onResult(result);
-      }, {
-        highlightScanRegion: true,
-        highlightCodeOutline: true
-      });
-
-      qrScanner.start({ facingMode: "environment" })
-        .then(() => updateConnStatus("📷 مسح نشط... وجه الكاميرا نحو QR"))
-        .catch(err => {
-          console.error("فشل في تشغيل الكاميرا:", err);
-          showStatus("فشل في الوصول للكاميرا. تأكد من السماح بالوصول.", "error");
-          video.style.display = "none";
-          offerBtn.disabled = false;
-        });
-    }
-
-    // --- معالجة QR ---
-    function handleScannedQR(result) {
-      if (result.startsWith("webrtc://")) {
-        joinOffer(result);
-      } else {
-        showStatus("QR غير صالح", "error");
+    // نسخ للحافظة
+    async function copyText(el){
+      try{
+        await navigator.clipboard.writeText(el.value);
+        showGlobal('📋 تم النسخ إلى الحافظة.', 'success');
+      }catch{
+        el.select(); document.execCommand('copy');
+        showGlobal('📋 تم النسخ (fallback).', 'success');
       }
     }
 
-    scanBtn.onclick = () => startVideoForScan(handleScannedQR);
-
-    // --- الانضمام (Answer) ---
-    async function joinOffer(sdpStr) {
-      try {
-        const sdp = JSON.parse(atob(sdpStr.replace("webrtc://", "")));
-        cleanup();
-
-        peerConnection = new RTCPeerConnection({
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" }
-          ]
-        });
-
-        peerConnection.ondatachannel = (e) => setupDataChannel(e.channel);
-        await peerConnection.setRemoteDescription(sdp);
-
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-
-        const answerSDP = btoa(JSON.stringify(answer));
-        generateQRCode(qrDiv, "webrtc-answer://" + answerSDP).then(() => {
-          showStatus("📷 اعرض هذا الرمز للطرف الأول ليمسحه.", "info");
-        });
-
-        chatBox.style.display = "flex";
-        updateConnStatus("جاري الانتظار...");
-      } catch (err) {
-        console.error("خطأ في joinOffer:", err);
-        showStatus("فشل في الانضمام", "error");
-      }
-    }
-
-    // --- إعادة البدء ---
-    function resetApp() {
+    // إعادة البدء
+    function resetAll(){
       cleanup();
-      qrDiv.innerHTML = "";
-      msgsEl.innerHTML = "";
-      chatBox.style.display = "none";
-      statusEl.classList.add("hidden");
-      offerBtn.disabled = false;
-      resetBtn.classList.add("hidden");
-      updateConnStatus("جاري الإعداد...");
+      qrOffer.innerHTML=''; qrAnswer.innerHTML='';
+      offerText.value=''; answerText.value=''; joinOfferText.value=''; answerOutText.value='';
+      hideGlobal(); scanStatus.style.display='none';
+      chatBox.style.display='none'; msgsEl.innerHTML='';
+      setConn('جاري الإعداد...');
     }
 
-    resetBtn.onclick = resetApp;
+    // أحداث الواجهة
+    makeOfferBtn.onclick = makeOffer;
+    resetBtn.onclick = resetAll;
+    copyOfferBtn.onclick = ()=> copyText(offerText);
+    copyAnswerBtn.onclick = ()=> copyText(answerOutText);
+    applyAnswerBtn.onclick = applyAnswerManual;
+    scanAnswerBtn.onclick = scanAnswer;
+    scanOfferBtn.onclick = scanOffer;
+    stopScanBtn.onclick = stopScan;
+    makeAnswerBtn.onclick = makeAnswerFromPasted;
 
-    // --- بدء التشغيل ---
-    document.addEventListener('DOMContentLoaded', () => {
-      checkSecureContext();
-      offerBtn.onclick = startOffer;
-      resetBtn.classList.add("hidden");
+    sendBtn.onclick = sendMsg;
+    msgInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); }});
+    imgBtn.onclick = ()=> fileInput.click();
+    fileInput.onchange = (e)=> sendImage(e.target.files[0]);
+
+    // تحذير HTTPS
+    document.addEventListener('DOMContentLoaded', ()=>{
+      if(!window.isSecureContext && location.protocol !== 'http:'){
+        showGlobal('⚠️ للوصول للكاميرا نحتاج HTTPS. GitHub Pages مناسب.', 'error');
+      }
     });
-  </script>
-</body>
+  </script></body>
 </html>
-
-
-
-
-
-
-
-
